@@ -1,5 +1,6 @@
 package id.co.bankbsi.e_walled.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -37,12 +38,11 @@ public class Users extends Timestamp {
     private List<Wallets> wallets;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @Column(name="tokenVersion", columnDefinition="integer default 0")
+    @Column(name = "tokenVersion", columnDefinition = "integer default 0")
     private Integer tokenVersion = 0;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private UUID sessionId;
-
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @ManyToMany(fetch = FetchType.EAGER)
@@ -51,4 +51,14 @@ public class Users extends Timestamp {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "wallet_id"))
     private List<Wallets> walletFavorites;
+
+
+    @JsonIgnore
+    private String pin;
+
+    @Transient
+    @JsonProperty
+    public boolean havePin() {
+        return this.getPin() != null;
+    }
 }

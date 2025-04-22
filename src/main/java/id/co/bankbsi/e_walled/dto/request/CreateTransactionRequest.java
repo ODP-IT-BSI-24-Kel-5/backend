@@ -16,6 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CreateTransactionRequest {
     @Positive(message = "Amount must be greater than 0")
+    @JsonProperty(required = true)
     private Long amount;
 
     private String notes;
@@ -25,8 +26,12 @@ public class CreateTransactionRequest {
     @Data
     @AllArgsConstructor
     @ValidTransactions
-    public static class CreateTransactionTransferRequest extends CreateTransactionRequest{
+    public static class CreateTransactionTransferRequest extends CreateTransactionRequest {
+        @JsonProperty(required = true)
+        private String pin;
+        @JsonProperty(required = true)
         private String senderAccount;
+        @JsonProperty(required = true)
         private String acquirerAccount;
     }
 
@@ -35,6 +40,9 @@ public class CreateTransactionRequest {
     @Data
     @AllArgsConstructor
     public static class CreateTransactionTopUpRequest extends CreateTransactionRequest {
+        @JsonProperty(required = true)
+        private String pin;
+        @JsonProperty(required = true)
         private String acquirerAccount;
 
         @JsonProperty(required = true)

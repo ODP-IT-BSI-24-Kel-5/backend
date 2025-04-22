@@ -1,5 +1,6 @@
 package id.co.bankbsi.e_walled.controllers;
 
+import id.co.bankbsi.e_walled.dto.request.CreatePinRequest;
 import id.co.bankbsi.e_walled.dto.request.LoginRequest;
 import id.co.bankbsi.e_walled.dto.request.RegisterRequest;
 import id.co.bankbsi.e_walled.dto.response.Response;
@@ -28,6 +29,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<Response> returnHistory(@RequestBody @Valid LoginRequest req) {
         Response res = authServices.loginUser(req);
+        return ResponseEntity.status(res.getCode()).body(res);
+    }
+
+    @PostMapping("/pins")
+    public ResponseEntity<Response> createPin(@AuthenticationPrincipal Users user, @RequestBody @Valid CreatePinRequest req) {
+        Response res = authServices.setPin(user, req);
         return ResponseEntity.status(res.getCode()).body(res);
     }
 

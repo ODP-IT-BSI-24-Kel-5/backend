@@ -52,16 +52,14 @@ public class SecurityConfig {
                                 "/api/v1/users/auth/login",
                                 "/api/v1/users/auth/register",
                                 "/swagger-ui/index.html",
-                                "/error"
+                                "/error",
+                                "/assets/images/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .cors(cors -> cors.configurationSource(request -> {
                     var corsConfig = new CorsConfiguration();
-                    corsConfig.setAllowedOrigins(List.of(
-                            "https://your-frontend.ngrok-free.app",
-                            "http://localhost:5173",
-                            "http://localhost:3000"
+                    corsConfig.setAllowedOrigins(List.of("*"
                     ));
                     corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     corsConfig.setAllowedHeaders(List.of("Authorization", "Content-Type"));
@@ -84,6 +82,11 @@ public class SecurityConfig {
 
     }
 
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -91,11 +94,6 @@ public class SecurityConfig {
         authProvider.setPasswordEncoder(passwordEncoder());
 
         return authProvider;
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
     }
 
     @Bean

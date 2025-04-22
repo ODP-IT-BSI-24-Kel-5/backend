@@ -1,5 +1,6 @@
 package id.co.bankbsi.e_walled.services;
 
+import id.co.bankbsi.e_walled.dto.request.CreatePinRequest;
 import id.co.bankbsi.e_walled.dto.request.CreateWalletRequest;
 import id.co.bankbsi.e_walled.dto.request.LoginRequest;
 import id.co.bankbsi.e_walled.dto.request.RegisterRequest;
@@ -51,6 +52,10 @@ public class AuthService {
             // Map DTO to entity
             Users user = modelMapper.map(dto, Users.class);
 
+            if (!dto.getPassword().equals(dto.getConfirmationPassword())) {
+                return Response.failedRequest("Password and password confirmation didn't match!");
+            }
+
             user.setPassword(passwordEncoder.encode(user.getPassword()));
 
             Users savedUser = userRepository.save(user);
@@ -82,6 +87,35 @@ public class AuthService {
             String token = jwtUtil.generateToken(user);
 
             return LoginResponse.success("Login successful", token);
+        } catch (Exception e) {
+            return Response.failedServer("Login failed: " + e.getMessage());
+        }
+    }
+
+    public Response setPin(Users user, CreatePinRequest dto) {
+        try {
+            if (user.havePin()) {
+
+                if (dto.getOldPin() == null) {
+                    return Response.failedRequest("Invalid updating pin, current pin not present!");
+                }
+                if (!passwordEncoder.matches(dto.getOldPin(), user.getPin())) {
+                    return Response.failedRequest("Invalid updating pin, current pin didn't match!");
+                }
+                if (passwordEncoder.matches(dto.getPin(), user.getPin())) {
+                    return Response.failedRequest("Invalid updating pin, new pin same as current pin!");
+                }
+            }
+
+            if (!dto.getPin().equals(dto.getConfirmationPin())) {
+                return Response.failedRequest("Create pin failed, pin and confirmation not equals!");
+            }
+
+
+            user.setPin(passwordEncoder.encode(dto.getPin()));
+            userRepository.save(user);
+
+            return Response.successCreated("Success create pin!");
         } catch (Exception e) {
             return Response.failedServer("Login failed: " + e.getMessage());
         }

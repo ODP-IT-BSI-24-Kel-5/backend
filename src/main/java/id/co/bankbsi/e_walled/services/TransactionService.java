@@ -26,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
@@ -36,6 +37,7 @@ import java.util.*;
 public class TransactionService {
     private final ModelMapper modelMapper;
 
+    private final PasswordEncoder passwordEncoder;
     @Autowired
     private final TransactionRepository transactionRepository;
     @Autowired
@@ -91,6 +93,10 @@ public class TransactionService {
         try {
             Wallets senderWallet = walletRepository.findByNumber(req.getSenderAccount());
             Wallets receiverWallet = walletRepository.findByNumber(req.getAcquirerAccount());
+
+            if (!passwordEncoder.matches(req.getPin(), userData.getPin())) {
+                return Response.failedRequest("Invalid pin, try again!");
+            }
 
             validateOwnership(senderWallet, userData.getId(), "Sender");
             validateBalance(senderWallet, req.getAmount());
@@ -162,6 +168,13 @@ public class TransactionService {
             Transactions transaction = modelMapper.map(req, Transactions.class);
 
             Wallets wallets = walletRepository.findByNumber(req.getAcquirerAccount());
+
+            System.out.println(req.getPin());
+            System.out.println(userData.getPin());
+            System.out.println(passwordEncoder.matches(req.getPin(), userData.getPin()));
+            if (!passwordEncoder.matches(req.getPin(), userData.getPin())) {
+                return Response.failedRequest("Invalid pin, try again!");
+            }
 
             validateOwnership(wallets, userData.getId(), "User wallet");
 
