@@ -48,6 +48,13 @@ public class WalletController {
         return ResponseEntity.status(res.getCode()).body(res);
     }
 
+    @GetMapping("/latest")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<Response> getLatestTransfer(@AuthenticationPrincipal Users user) {
+        Response res = walletService.getLatestTransfer(user);
+        return ResponseEntity.status(res.getCode()).body(res);
+    }
+
     @GetMapping("/{number}")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Response> getSpecificWallet(@PathVariable(value = "number") String number) {

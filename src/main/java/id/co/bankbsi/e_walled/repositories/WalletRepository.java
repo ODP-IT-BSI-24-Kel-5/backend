@@ -24,6 +24,24 @@ public interface WalletRepository extends JpaRepository<Wallets, Long> {
 
     Wallets findByNumberAndUserId(String number,UUID userId);
 
+
+    @Query("""
+                SELECT w
+                FROM Wallets w
+                WHERE w IN (
+                    SELECT t.wallet
+                    FROM Transactions t
+                    WHERE t.wallet.user = :user
+                )
+                ORDER BY (
+                    SELECT MAX(t2.createdAt)
+                    FROM Transactions t2
+                    WHERE t2.wallet = w
+                ) DESC
+                LIMIT 10
+            """)
+    List<Wallets> findLatestTransactions(Users user);
+
     @Query("SELECT SUM(balance) FROM Wallets w WHERE w.user.id = :userId")
     Long sumBalance(UUID userId);
 

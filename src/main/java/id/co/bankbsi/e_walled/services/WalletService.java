@@ -59,6 +59,14 @@ public class WalletService {
             throw e;
         }
     }
+    public Response getLatestTransfer(Users user) {
+        try {
+            List<Wallets> wallets = walletRepository.findLatestTransactions(user);
+            return WalletsResponse.success(wallets);
+        } catch (Exception e) {
+            throw e;
+        }
+    }
 
     public Response getSpecificWallet(Users user, String number) {
         try {

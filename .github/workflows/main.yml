@@ -1,42 +1,62 @@
-name: Deploy to VPS
+name: Deploy via VPN
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          java-version: '21'  # adjust if needed
+          java-version: '21'
           distribution: 'temurin'
 
-      - name: Build with Maven
+      - name: Build JAR
         run: mvn clean package -DskipTests
 
-      - name: Copy .jar to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: target/*.jar
-          target: ${{ secrets.DEPLOY_PATH }}
+      - name: Install Pritunl CLI
+        run: |
+          curl -L -o pritunl-client https://github.com/pritunl/pritunl-client/releases/latest/download/pritunl-client
+          chmod +x pritunl-client
+          sudo mv pritunl-client /usr/local/bin/
+          pritunl-client version 
 
-      - name: Restart app on VPS
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "Restarting Spring Boot app"
-            pkill -f 'java.*.jar' || true
-            nohup java -jar ${{ secrets.DEPLOY_PATH }}/$(ls ${{ secrets.DEPLOY_PATH }} | grep '.jar' | tail -1) > app.log 2>&1 &
+      - name: Decode and Import Pritunl Profile
+        run: |
+          echo "${{ secrets.PRITUNL_PROFILE_TAR_BASE64 }}" | base64 -d > profile.tar
+          pritunl-client add profile.tar
+
+      - name: Connect VPN
+        run: |
+          profile_id=$(pritunl-client list | grep -oP '^\S+')
+          pritunl-client start "$profile_id"
+          sleep 10
+          pritunl-client status "$profile_id"
+
+      - name: Add SSH Key
+        run: |
+          echo "${{ secrets.PEM_KEY }}" > key.pem
+          chmod 600 key.pem
+
+      - name: Test VPN and SSH
+        run: |
+          ping -c 3 ${{ secrets.VPS_HOST }}
+          ssh -i key.pem -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo Connected via VPN!"
+
+      - name: Upload JAR to VPS
+        run: |
+          scp -o StrictHostKeyChecking=no -i key.pem target/*.jar ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.TARGET_DIR }}
+
+      - name: Restart App on VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+          pkill -f 'java -jar' || true
+          nohup java -jar ${{ secrets.TARGET_DIR }}/*.jar > app.log 2>&1 &
+          EOF
