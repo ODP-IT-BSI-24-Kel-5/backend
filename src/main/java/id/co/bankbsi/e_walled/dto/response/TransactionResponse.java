@@ -29,5 +29,6 @@ public class TransactionResponse {
     private TransactionTypes type;
     private String notes;
     private String category;
-    private String via;
+    private String method;
+    private String imageReceipt;
 }

@@ -1,6 +1,11 @@
 package id.co.bankbsi.e_walled.controllers;
 
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import id.co.bankbsi.e_walled.annotations.ValidEnum;
 import id.co.bankbsi.e_walled.dto.request.CreateTransactionRequest;
 import id.co.bankbsi.e_walled.dto.request.TransactionsRequest;
@@ -16,10 +21,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -34,18 +42,19 @@ public class TransactionController {
     @GetMapping("/{wallet}")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<PaginatedResponse<TransactionResponse>> getTransaction(@AuthenticationPrincipal Users userData,
-                                                                    @RequestParam(name = "page", defaultValue = "1") Integer page,
-                                                                    @RequestParam(name = "size", defaultValue = "5") Integer size,
-                                                                    @RequestParam(name = "sort", defaultValue = "[{\"field\":\"id\",\"direction\":\"desc\"}]") String sort,
-                                                                    @RequestParam(name = "start_date", required = false) String startDate,
-                                                                    @RequestParam(name = "type", required = false) @ValidEnum(enumClass = TransactionTypes.class) TransactionTypes type,
-                                                                    @RequestParam(name = "category_name", required = false) String categoryName,
-                                                                    @RequestParam(name = "transaction_number", required = false) String transactionNumber,
-                                                                    @RequestParam(name = "acquirer_number", required = false) String associateWallet,
-                                                                    @RequestParam(name = "sender_number", required = false) String wallet,
-                                                                    @RequestParam(name = "end_date", required = false) String endDate,
-                                                                    @RequestParam(name = "search", required = false) String search,
-                                                                    @PathVariable(name = "wallet") String walletNumber) {
+                                                                                 @RequestParam(name = "page", defaultValue = "1") Integer page,
+                                                                                 @RequestParam(name = "size", defaultValue = "5") Integer size,
+                                                                                 @RequestParam(name = "sort", defaultValue = "id") String sort,
+                                                                                 @RequestParam(name = "direction", defaultValue = "asc") String direction,
+                                                                                 @RequestParam(name = "start_date", required = false) String startDate,
+                                                                                 @RequestParam(name = "type", required = false) @ValidEnum(enumClass = TransactionTypes.class) TransactionTypes type,
+                                                                                 @RequestParam(name = "category_name", required = false) String categoryName,
+                                                                                 @RequestParam(name = "transaction_number", required = false) String transactionNumber,
+                                                                                 @RequestParam(name = "acquirer_number", required = false) String associateWallet,
+                                                                                 @RequestParam(name = "sender_number", required = false) String wallet,
+                                                                                 @RequestParam(name = "end_date", required = false) String endDate,
+                                                                                 @RequestParam(name = "search", required = false) String search,
+                                                                                 @PathVariable(name = "wallet") String walletNumber) {
 
         int adjustedPage = Math.max(0, page - 1);
         PaginatedResponse<TransactionResponse> transactions = transactionService.searchTransactionsWithPaginationSortingAndFiltering(userData,
@@ -62,6 +71,7 @@ public class TransactionController {
                         .page(adjustedPage)
                         .size(size)
                         .sort(sort)
+                        .direction(direction)
                         .build());
 
         return ResponseEntity.ok(transactions);
@@ -70,18 +80,19 @@ public class TransactionController {
     @GetMapping("")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<PaginatedResponse<TransactionResponse>> getAllTransaction(@AuthenticationPrincipal Users userData,
-                                                                       @RequestParam(name = "page", defaultValue = "1") Integer page,
-                                                                       @RequestParam(name = "size", defaultValue = "5") Integer size,
-                                                                       @RequestParam(name = "sort", defaultValue = "[{\"field\":\"id\",\"direction\":\"desc\"}]") String sort,
-                                                                       @RequestParam(name = "start_date", required = false) String startDate,
-                                                                       @RequestParam(name = "type", required = false) @ValidEnum(enumClass = TransactionTypes.class) TransactionTypes type,
-                                                                       @RequestParam(name = "category_name", required = false) String categoryName,
-                                                                       @RequestParam(name = "transaction_number", required = false) String transactionNumber,
-                                                                       @RequestParam(name = "acquirer_number", required = false) String associateWallet,
-                                                                       @RequestParam(name = "sender_number", required = false) String wallet,
-                                                                       @RequestParam(name = "end_date", required = false) String endDate,
-                                                                       @RequestParam(name = "search", required = false) String search,
-                                                                       @RequestParam(name = "wallet", required = false) String walletNumber) {
+                                                                                    @RequestParam(name = "page", defaultValue = "1") Integer page,
+                                                                                    @RequestParam(name = "size", defaultValue = "5") Integer size,
+                                                                                    @RequestParam(name = "sort", defaultValue = "id") String sort,
+                                                                                    @RequestParam(name = "direction", defaultValue = "asc") String direction,
+                                                                                    @RequestParam(name = "start_date", required = false) String startDate,
+                                                                                    @RequestParam(name = "type", required = false) @ValidEnum(enumClass = TransactionTypes.class) TransactionTypes type,
+                                                                                    @RequestParam(name = "category_name", required = false) String categoryName,
+                                                                                    @RequestParam(name = "transaction_number", required = false) String transactionNumber,
+                                                                                    @RequestParam(name = "acquirer_number", required = false) String associateWallet,
+                                                                                    @RequestParam(name = "sender_number", required = false) String wallet,
+                                                                                    @RequestParam(name = "end_date", required = false) String endDate,
+                                                                                    @RequestParam(name = "search", required = false) String search,
+                                                                                    @RequestParam(name = "wallet", required = false) String walletNumber) {
 
 
         int adjustedPage = Math.max(0, page - 1);
@@ -99,6 +110,7 @@ public class TransactionController {
                         .page(adjustedPage)
                         .size(size)
                         .sort(sort)
+                        .direction(direction)
                         .build());
 
         return ResponseEntity.ok(transactions);
@@ -116,5 +128,15 @@ public class TransactionController {
     public ResponseEntity<Response> createTransactionTransfer(@AuthenticationPrincipal Users userData, @RequestBody @Valid CreateTransactionRequest.CreateTransactionTopUpRequest req) {
         Response res = transactionService.createTransactionTopUp(userData, req);
         return ResponseEntity.status(res.getCode()).body(res);
+    }
+
+    @GetMapping(path = "/qr", produces = MediaType.IMAGE_PNG_VALUE)
+    public byte[] generateQRCode(@AuthenticationPrincipal Users userData) throws WriterException, IOException {
+        QRCodeWriter writer = new QRCodeWriter();
+        BitMatrix bitMatrix = writer.encode("byondwallet://open/transactions/transfer?" + userData.getId().toString(), BarcodeFormat.QR_CODE, 400, 400);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
+        return outputStream.toByteArray();
     }
 }

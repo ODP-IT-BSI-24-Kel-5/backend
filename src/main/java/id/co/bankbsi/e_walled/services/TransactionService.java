@@ -2,7 +2,6 @@ package id.co.bankbsi.e_walled.services;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import id.co.bankbsi.e_walled.dto.TransactionDTO;
 import id.co.bankbsi.e_walled.dto.request.CreateTransactionRequest;
 import id.co.bankbsi.e_walled.dto.request.SortRequest;
 import id.co.bankbsi.e_walled.dto.request.TransactionFilterRequest;
@@ -14,10 +13,9 @@ import id.co.bankbsi.e_walled.dto.response.TransactionsResponse;
 
 import id.co.bankbsi.e_walled.exceptions.BadRequestException;
 import id.co.bankbsi.e_walled.exceptions.InternalServerException;
-import id.co.bankbsi.e_walled.exceptions.NotFoundException;
 import id.co.bankbsi.e_walled.models.*;
 import id.co.bankbsi.e_walled.repositories.*;
-import id.co.bankbsi.e_walled.specifications.TransactionSpecification;
+import id.co.bankbsi.e_walled.utils.TransactionUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -25,12 +23,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +48,10 @@ public class TransactionService {
     private UserRepository userRepository;
     @Autowired
     private WalletRepository walletRepository;
+    @Autowired
+    private TransactionTopUpMethodsRepository transactionTopUpMethodsRepository;
+    @Autowired
+    private TransactionUtils transactionUtils;
 
     public PaginatedResponse<TransactionResponse> searchTransactionsWithPaginationSortingAndFiltering(Users userData, TransactionsRequest transactionsRequest) {
 
@@ -64,15 +68,13 @@ public class TransactionService {
                 .categoryName(transactionsRequest.getCategoryName())
                 .build();
 
-        List<SortRequest> sortRequests = jsonStringToSortDto(transactionsRequest.getSort());
+        List<SortRequest> sortRequests = List.of(new SortRequest(transactionsRequest.getSort(), transactionsRequest.getDirection()));
         List<Sort.Order> orders = new ArrayList<>();
 
-        if (sortRequests != null) {
-            for (SortRequest sortRequest : sortRequests) {
-                Sort.Direction direction = Objects.equals(sortRequest.getDirection(), "desc")
-                        ? Sort.Direction.DESC : Sort.Direction.ASC;
-                orders.add(new Sort.Order(direction, sortRequest.getField()));
-            }
+        for (SortRequest sortRequest : sortRequests) {
+            Sort.Direction direction = Objects.equals(sortRequest.getDirection(), "desc")
+                    ? Sort.Direction.DESC : Sort.Direction.ASC;
+            orders.add(new Sort.Order(direction, sortRequest.getField()));
         }
 
         PageRequest pageRequest = PageRequest.of(
@@ -102,26 +104,28 @@ public class TransactionService {
             validateBalance(senderWallet, req.getAmount());
 
 
-            Transactions transaction =  mapTransaction(req,senderWallet, receiverWallet);
+            Transactions transaction = mapTransaction(req, senderWallet, receiverWallet);
             TransactionResponse transactionData = modelMapper.map(transaction, TransactionResponse.class);
-            transactionData.setCategory(transaction.getCategory().getName());
+            if (transactionData.getCategory() != null) {
+                transactionData.setCategory(transaction.getCategory().getName());
+            }
             return TransactionsResponse.successCreate(transactionData);
         } catch (Exception e) {
             throw e; // Let handled exceptions bubble up
         }
     }
 
-    private Transactions mapTransaction(CreateTransactionRequest.CreateTransactionTransferRequest req,  Wallets sender, Wallets receiver) {
+    private Transactions mapTransaction(CreateTransactionRequest.CreateTransactionTransferRequest req, Wallets sender, Wallets receiver) {
         Transactions transaction = new Transactions();
         Long recordBalance = sender.getBalance() - req.getAmount();
 
         String description = "Transfer made from " + sender.getNumber() + " to " + receiver.getNumber();
-        TransactionCategories category = transactionCategoryRepository.findById(req.getCategory())
-                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+
+        TransactionCategories category = transactionCategoryRepository.findFirstById(req.getCategory());
 
         boolean isInhouse = sender.getUser().getId() == receiver.getUser().getId();
         String txNum = generateTransactionNumber();
-        System.out.println(txNum);
+
         transaction.setCategory(category);
         transaction.setType(TransactionTypes.TRANSFER);
         transaction.setDebit(true);
@@ -133,7 +137,7 @@ public class TransactionService {
         transaction.setInternal(isInhouse);
         transaction.setWalletBalanceLeft(sender.getBalance());
         transaction.setNotes(req.getNotes());
-
+        transactionUtils.imageReceipt(transaction);
         transactionRepository.save(transaction);
 
         Long associateBalance = receiver.getBalance() + req.getAmount();
@@ -169,9 +173,6 @@ public class TransactionService {
 
             Wallets wallets = walletRepository.findByNumber(req.getAcquirerAccount());
 
-            System.out.println(req.getPin());
-            System.out.println(userData.getPin());
-            System.out.println(passwordEncoder.matches(req.getPin(), userData.getPin()));
             if (!passwordEncoder.matches(req.getPin(), userData.getPin())) {
                 return Response.failedRequest("Invalid pin, try again!");
             }
@@ -179,16 +180,17 @@ public class TransactionService {
             validateOwnership(wallets, userData.getId(), "User wallet");
 
 
+            TransactionTopUpMethods method = transactionTopUpMethodsRepository.findById(req.getMethod()).orElseThrow();
             String txNum = generateTransactionNumber();
             Long acquirerBalance = wallets.getBalance() + req.getAmount();
-            String description = "Top up using "+req.getVia();
+            String description = "Top up using " + method.getName();
             transaction.setTransactionNumber(generateTransactionNumber());
             transaction.setType(TransactionTypes.TOPUP);
             transaction.setWalletBalanceLeft(acquirerBalance);
-            transaction.setType(TransactionTypes.TOPUP);
             transaction.setDebit(false);
             transaction.setAmount(req.getAmount());
             transaction.setTransactionNumber(txNum);
+            transaction.setMethod(method);
             transaction.setWallet(wallets);
             transaction.setDescription(description);
             transaction.setInternal(false);
@@ -255,15 +257,5 @@ public class TransactionService {
         }
 
         return String.format("%04d", nextSequence);
-    }
-
-    private List<SortRequest> jsonStringToSortDto(String jsonString) {
-        try {
-            ObjectMapper obj = new ObjectMapper();
-            return obj.readValue(jsonString, new TypeReference<>() {
-            });
-        } catch (Exception e) {
-            throw new InternalServerException(e.getMessage());
-        }
     }
 }

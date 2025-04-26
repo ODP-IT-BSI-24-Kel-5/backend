@@ -20,10 +20,7 @@ public class RegisterRequest {
     private String password;
 
     @NotBlank(message = "Confirmation password is required")
-    @Pattern(
-            regexp = "^(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
-            message = "Confirmation password must be at least 8 characters long, include uppercase letter, number, and special character"
-    )
+
     private String confirmationPassword;
 
     @NotBlank(message = "Phone number is required")

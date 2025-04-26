@@ -42,11 +42,17 @@ public class Transactions extends Timestamp {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction_category_id")
-    private TransactionCategories category;  // Reference to the Category entity
+    private TransactionCategories category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_method_id")
+    private TransactionTopUpMethods method;
+
+    @Column(name = "receipt_image", nullable = true, updatable = false)
+    private String receiptImage;
 
     private boolean isDebit;
     private boolean isInternal;
-    private String via;  // Reference to the Category entity
+    private String via;
 }
 
