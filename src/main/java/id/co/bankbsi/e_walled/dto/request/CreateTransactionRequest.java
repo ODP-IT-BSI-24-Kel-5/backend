@@ -46,7 +46,7 @@ public class CreateTransactionRequest {
         private String acquirerAccount;
 
         @JsonProperty(required = true)
-        private String via;
+        private Long method;
     }
 }
 

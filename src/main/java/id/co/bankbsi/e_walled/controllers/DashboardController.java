@@ -25,9 +25,9 @@ public class DashboardController {
     private final DashboardService transactionStatService;
     private final UserService userService;
 
-    @PostMapping("/pie")
-    public ResponseEntity<Response> getPieChart(@AuthenticationPrincipal Users users, @RequestBody TransactionStatsRequest.PieChart request) {
-        return ResponseEntity.ok(transactionStatService.getPieChart(users, request));
+    @GetMapping("/pie")
+    public ResponseEntity<Response> getPieChart(@AuthenticationPrincipal Users users, @RequestParam(value = "range_type", required = false) String range) {
+        return ResponseEntity.ok(transactionStatService.getPieChart(users, range));
     }
 
 
@@ -35,9 +35,11 @@ public class DashboardController {
     public ResponseEntity<Response> getBalanceGrowth(
             @AuthenticationPrincipal Users user,
             @RequestParam PeriodType period,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
+            @RequestParam(required = false,value = "start_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false,value = "end_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate
     ) { // You can inject this however you handle auth
+        System.out.println(startDate);
+        System.out.println(endDate);
         var data = transactionStatService.getBalanceGrowthByPeriod(user, period, startDate, endDate);
         return ResponseEntity.ok(data);
     }

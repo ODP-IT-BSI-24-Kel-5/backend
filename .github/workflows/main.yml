@@ -21,24 +21,10 @@ jobs:
       - name: Build JAR
         run: mvn clean package -DskipTests
 
-      - name: Install Pritunl CLI
-        run: |
-          curl -L -o pritunl-client https://github.com/pritunl/pritunl-client/releases/latest/download/pritunl-client
-          chmod +x pritunl-client
-          sudo mv pritunl-client /usr/local/bin/
-          pritunl-client version 
-
-      - name: Decode and Import Pritunl Profile
-        run: |
-          echo "${{ secrets.PRITUNL_PROFILE_TAR_BASE64 }}" | base64 -d > profile.tar
-          pritunl-client add profile.tar
-
-      - name: Connect VPN
-        run: |
-          profile_id=$(pritunl-client list | grep -oP '^\S+')
-          pritunl-client start "$profile_id"
-          sleep 10
-          pritunl-client status "$profile_id"
+      - name: Pritunl Client GitHub Action
+        uses: nathanielvarona/pritunl-client-github-action@v1
+        with:
+          profile-file: ${{ secrets.PRITUNL_PROFILE_TAR_BASE64 }}
 
       - name: Add SSH Key
         run: |

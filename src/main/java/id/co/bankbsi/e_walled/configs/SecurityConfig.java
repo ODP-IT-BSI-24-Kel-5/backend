@@ -59,7 +59,9 @@ public class SecurityConfig {
                 )
                 .cors(cors -> cors.configurationSource(request -> {
                     var corsConfig = new CorsConfiguration();
-                    corsConfig.setAllowedOrigins(List.of("*"
+                    corsConfig.setAllowedOriginPatterns(List.of(
+                            "http://localhost:*",
+                            "https://kelompok3.serverku.org"
                     ));
                     corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     corsConfig.setAllowedHeaders(List.of("Authorization", "Content-Type"));
@@ -82,11 +84,6 @@ public class SecurityConfig {
 
     }
 
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -94,6 +91,11 @@ public class SecurityConfig {
         authProvider.setPasswordEncoder(passwordEncoder());
 
         return authProvider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
     @Bean

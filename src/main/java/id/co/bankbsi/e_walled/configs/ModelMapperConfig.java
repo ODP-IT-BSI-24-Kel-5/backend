@@ -18,6 +18,7 @@ public class ModelMapperConfig {
             mapper.map(src -> src.getAssociateWallet().getNumber(), TransactionResponse::setAssociateWallet);
             mapper.map(src -> src.getAssociateWallet().getName(), TransactionResponse::setAssociateName);
             mapper.map(src -> src.getCategory().getName(), TransactionResponse::setCategory);
+            mapper.map(src -> src.getMethod().getName(), TransactionResponse::setMethod);
         });
 
 

@@ -5,6 +5,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,20 +28,24 @@ public class JWTTokenUtils {
 
     private Key hmacKey;
 
-    @PostConstruct
-    public void init() {
-        this.hmacKey = new SecretKeySpec(jwtKey.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
+    //    @PostConstruct
+//    public void init() {
+//        this.hmacKey = new SecretKeySpec(jwtKey.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
+//    }
+    private Key getSignInKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(jwtKey);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateToken(Users user) {
         return Jwts.builder()
                 .setSubject(user.getId().toString())
                 .setAudience("bankbsi.co.id")
-                .claim("tokenVersion", user.getTokenVersion())
-                .claim("sessionId", user.getSessionId().toString())
+//                .claim("tokenVersion", user.getTokenVersion())
+//                .claim("sessionId", user.getSessionId().toString())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + getExpirationTime()))
-                .signWith(hmacKey)
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -60,12 +65,8 @@ public class JWTTokenUtils {
     public boolean isTokenValid(String token, Users user) {
         try {
             UUID tokenUserId = UUID.fromString(extractSubject(token));
-            Integer tokenVersion = extractClaim(token, claims -> claims.get("tokenVersion", Integer.class));
-            UUID sessionId = UUID.fromString(extractClaim(token, claims -> claims.get("sessionId", String.class)));
 
             return tokenUserId.equals(user.getId())
-                    && tokenVersion.equals(user.getTokenVersion())
-                    && sessionId.equals(user.getSessionId())
                     && !isTokenExpired(token);
 
         } catch (Exception e) {
@@ -84,7 +85,7 @@ public class JWTTokenUtils {
     private Claims extractAllClaims(String token) {
         return Jwts
                 .parserBuilder()
-                .setSigningKey(hmacKey)
+                .setSigningKey(getSignInKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

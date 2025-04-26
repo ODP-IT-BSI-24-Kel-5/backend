@@ -2,10 +2,7 @@ package id.co.bankbsi.e_walled.repositories;
 
 import id.co.bankbsi.e_walled.dto.request.TransactionFilterRequest;
 import id.co.bankbsi.e_walled.dto.response.TransactionResponse;
-import id.co.bankbsi.e_walled.models.TransactionCategories;
-import id.co.bankbsi.e_walled.models.Transactions;
-import id.co.bankbsi.e_walled.models.Users;
-import id.co.bankbsi.e_walled.models.Wallets;
+import id.co.bankbsi.e_walled.models.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -48,9 +45,10 @@ public class CustomTransactionRepository {
         Join<Wallets, Users> receiverUser = receiver.join("user", JoinType.LEFT);
 
         Join<Transactions, TransactionCategories> category = transaction.join("category", JoinType.LEFT);
+        Join<Transactions, TransactionTopUpMethods> method = transaction.join("method", JoinType.LEFT);
 
         // === FILTERS ===
-        List<Predicate> predicates = buildPredicates(cb, transaction, user, sender, receiver, senderUser, receiverUser, category, filterRequest);
+        List<Predicate> predicates = buildPredicates(cb, transaction, user, sender, receiver, senderUser, receiverUser, category, method, filterRequest);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         // === SIGNED AMOUNT ===
@@ -71,7 +69,8 @@ public class CustomTransactionRepository {
                 transaction.get("type"),
                 transaction.get("notes"),
                 category.get("name").alias("category"),
-                transaction.get("via")
+                method.get("name").alias("method"),
+                transaction.get("receiptImage")
         ));
 
         // === ORDER BY ===
@@ -104,9 +103,9 @@ public class CustomTransactionRepository {
         Join<Transactions, Wallets> countAcquirer = countRoot.join("associateWallet", JoinType.LEFT);
         Join<Wallets, Users> countAcquirerUser = countAcquirer.join("user", JoinType.LEFT);
         Join<Transactions, TransactionCategories> countCategory = countRoot.join("category", JoinType.LEFT);
-        countRoot.join("category", JoinType.LEFT);
+        Join<Transactions, TransactionTopUpMethods> countMethod = countRoot.join("method", JoinType.LEFT);
 
-        List<Predicate> countPredicates = buildPredicates(cb, countRoot, user, countSender, countAcquirer, countSenderUser, countAcquirerUser, countCategory, filterRequest);
+        List<Predicate> countPredicates = buildPredicates(cb, countRoot, user, countSender, countAcquirer, countSenderUser, countAcquirerUser, countCategory, countMethod, filterRequest);
         countQuery.where(cb.and(countPredicates.toArray(new Predicate[0])));
 
         countQuery.select(cb.count(countRoot));
@@ -150,6 +149,7 @@ public class CustomTransactionRepository {
                                             Join<Wallets, Users> senderUser,
                                             Join<Wallets, Users> receiverUser,
                                             Join<Transactions, TransactionCategories> category,
+                                            Join<Transactions, TransactionTopUpMethods> method,
                                             TransactionFilterRequest filterRequest) {
         List<Predicate> predicates = new ArrayList<>();
 
@@ -194,7 +194,8 @@ public class CustomTransactionRepository {
                     cb.like(cb.lower(sender.get("number")), likeSearch),
                     cb.like(cb.lower(receiverUser.get("fullName")), likeSearch),
                     cb.like(cb.lower(receiver.get("number")), likeSearch),
-                    cb.like(cb.lower(category.get("name")), likeSearch)
+                    cb.like(cb.lower(category.get("name")), likeSearch),
+                    cb.like(cb.lower(method.get("name")), likeSearch)
             ));
         }
 

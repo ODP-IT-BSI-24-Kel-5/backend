@@ -34,10 +34,10 @@ public class DashboardService {
     @Autowired
     private final TransactionRepository transactionRepository;
 
-    public Response getPieChart(Users user, TransactionStatsRequest.PieChart req) {
+    public Response getPieChart(Users user, String range) {
         LocalDateTime nowDate = LocalDateTime.now().with(LocalTime.MIN);
-        String range = req.getRangeType() == null ? "" : req.getRangeType().toLowerCase();
 
+        range = range == null? "" : range;
         LocalDateTime startDate = switch (range) {
             case "weekly" -> nowDate.minusWeeks(1);
             case "monthly" -> nowDate.minusMonths(1);
@@ -56,7 +56,7 @@ public class DashboardService {
                 endDate
         );
 
-        mappedTrans.add(extractIncomeExpense("total", total));
+        mappedTrans.add(extractIncomeExpense("Total", total));
         List<Wallets> wallets = walletRepository.findByUserId(user.getId());
 
         for (Wallets wallet : wallets) {
@@ -67,10 +67,10 @@ public class DashboardService {
                     endDate
             );
 
-            mappedTrans.add(extractIncomeExpense(wallet.getNumber(), results));
+            mappedTrans.add(extractIncomeExpense(wallet.getName(), results));
         }
 
-        return TransactionStatsResponse.success(Arrays.asList("Income", "Expense", "internal"), mappedTrans);
+        return TransactionStatsResponse.success(Arrays.asList("Income", "Expense", "Internal"), mappedTrans);
     }
 
     public TransactionStatsResponse getBalanceGrowthByPeriod(
@@ -95,14 +95,13 @@ public class DashboardService {
             transactionLabel.add(wallet.getNumber());
             Long tempBalance = customTransactionRepository.sumAmountsFromStartDate(wallet, start);
             totalBalance += (wallet.getBalance() + tempBalance);
-            System.out.println(wallet.getBalance());
-            System.out.println(tempBalance);
 
             walletInitialBalances.put(wallet.getNumber(), (wallet.getBalance() + tempBalance));
         }
         rawTransactions.add(transactionStatRepository.getTransactionGrowth(user.getId(), periodString, start, end));
         transactionLabel.add("total");
         Long tempBalance = customTransactionRepository.sumAmountsFromStartDate(null, start);
+        tempBalance = tempBalance < 0? 0 : tempBalance;
         walletInitialBalances.put("total", (totalBalance + tempBalance));
 
         return getAggregated(rawTransactions, transactionLabel, walletInitialBalances, periodString, start, end);
@@ -230,7 +229,6 @@ public class DashboardService {
             TreeMap<String, Long> periodSums = new TreeMap<>();
             Long initialBalance = walletInitialBalances.getOrDefault(walletName, 0L);
 
-            System.out.println(initialBalance);
             if (!allPeriods.isEmpty()) {
                 String firstPeriod = allPeriods.first();
                 periodSums.put(firstPeriod, initialBalance);

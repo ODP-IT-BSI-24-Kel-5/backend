@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.*;
@@ -18,6 +19,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -46,17 +48,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        List<String> errorMessages = ex.getBindingResult()
+        Map<String, String> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
-                .map(err -> err.getField() + ": " + err.getDefaultMessage())
-                .toList();
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        FieldError::getDefaultMessage,
+                        (existing, replacement) -> existing // in case of duplicate fields
+                ));
 
         Map<String, Object> body = new HashMap<>();
         body.put("status", "failed");
-        body.put("message", errorMessages);
+        body.put("message", errors);
 
-        logger.warn("Validation failed: {}", errorMessages);
+//        logger.warn("Validation failed: {}", errorMessages);
         return ResponseEntity.badRequest().body(body);
     }
 

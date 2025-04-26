@@ -81,8 +81,7 @@ public class AuthService {
                 return Response.failedRequest("Invalid credentials");
             }
 
-            user.setSessionId(UUID.randomUUID());
-            userRepository.save(user);
+//            userRepository.save(user);
 
             String token = jwtUtil.generateToken(user);
 
