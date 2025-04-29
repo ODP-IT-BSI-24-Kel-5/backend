@@ -1,5 +1,10 @@
 package id.co.bankbsi.e_walled.services;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import id.co.bankbsi.e_walled.dto.request.CreateWalletRequest;
 import id.co.bankbsi.e_walled.dto.request.UpdateWalletRequest;
 import id.co.bankbsi.e_walled.dto.response.WalletResponseGeneral;
@@ -7,7 +12,6 @@ import id.co.bankbsi.e_walled.dto.response.Response;
 import id.co.bankbsi.e_walled.dto.response.WalletResponse;
 import id.co.bankbsi.e_walled.dto.response.WalletsResponse;
 import id.co.bankbsi.e_walled.exceptions.BadRequestException;
-import id.co.bankbsi.e_walled.exceptions.InternalServerException;
 import id.co.bankbsi.e_walled.exceptions.NotFoundException;
 import id.co.bankbsi.e_walled.models.Users;
 import id.co.bankbsi.e_walled.models.Wallets;
@@ -20,6 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.*;
 
 @Service
@@ -34,7 +40,7 @@ public class WalletService {
 
     public Response getWallet(Users user) {
         try {
-            List<Wallets> wallets = walletRepository.findByUserId(user.getId());
+            List<Wallets> wallets = walletRepository.findByUserIdOrderByIsMainDescCreatedAtAsc(user.getId());
 
             if (wallets.isEmpty()) {
                 throw new NotFoundException("No wallets found for user ID: " + user.getId());
@@ -59,10 +65,15 @@ public class WalletService {
             throw e;
         }
     }
+
     public Response getLatestTransfer(Users user) {
         try {
             List<Wallets> wallets = walletRepository.findLatestTransactions(user);
-            return WalletsResponse.success(wallets);
+            List<WalletResponseGeneral.WalletsGeneral> walletsGenerals = new ArrayList<>();
+            for (Wallets wallet : wallets) {
+                walletsGenerals.add(modelMapper.map(wallet, WalletResponseGeneral.WalletsGeneral.class));
+            }
+            return WalletResponseGeneral.WalletsResponseGeneral.success(walletsGenerals);
         } catch (Exception e) {
             throw e;
         }
@@ -90,7 +101,7 @@ public class WalletService {
                 throw new NotFoundException("Wallet not found!");
             }
 
-            return WalletResponseGeneral.success(new WalletResponseGeneral.WalletsGeneral(wallets.getUser().getFullName(), wallets.getNumber()));
+            return WalletResponseGeneral.success(new WalletResponseGeneral.WalletsGeneral(wallets.getName(), wallets.getUser().getFullName(), wallets.getNumber()));
         } catch (Exception e) {
             throw e;
         }
@@ -108,6 +119,11 @@ public class WalletService {
             }
             if (wallets.size() > 4) {
                 throw new BadRequestException("Can't create more than 5 wallets!");
+            }
+            for (Wallets wallet : wallets) {
+                if (createWalletRequest.getName().equals(wallet.getName())) {
+                    throw new BadRequestException("You have wallet with the same name!");
+                }
             }
             return WalletResponse.successCreate(insertWallet(user, createWalletRequest, false));
         } catch (Exception e) {
@@ -128,6 +144,12 @@ public class WalletService {
             if (wallets == null) {
                 throw new BadRequestException("Wallets not found!");
             }
+            List<Wallets> walletd = walletRepository.findByUserId(userData.getId());
+            for (Wallets wallet : walletd) {
+                if (updateWalletRequest.getName().equals(wallet.getName())) {
+                    throw new BadRequestException("You have wallet with the same name!");
+                }
+            }
             wallets.setName(updateWalletRequest.getName());
             walletRepository.updateWalletName(wallets.getId(), wallets.getName());
 
@@ -143,7 +165,7 @@ public class WalletService {
         Wallets wallet = new Wallets();
         wallet.setUser(user);
 
-        if (createWalletRequest.getMain() != null) {
+        if (createWalletRequest.getMain() != null && createWalletRequest.getMain()) {
             walletRepository.removeMain(user);
             wallet.setIsMain(true);
         }
@@ -162,9 +184,27 @@ public class WalletService {
         return walletRepository.save(wallet);  // Save the wallet
     }
 
+    public byte[] generateQr(Users userData, String wallet) throws WriterException, IOException {
+
+        Wallets walletData = walletRepository.findByNumber(wallet);
+
+        if (walletData == null) {
+            throw new NotFoundException("Wallet not found!");
+        }
+
+        QRCodeWriter writer = new QRCodeWriter();
+        BitMatrix bitMatrix = writer.encode("byondwallet://open/transactions/transfer?" + walletData.getId().toString(), BarcodeFormat.QR_CODE, 400, 400);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
+
+        return outputStream.toByteArray();
+    }
+
+
     private String generateRandomAccountNumber() {
         String prefix = "9072";  // The fixed prefix you want (can be anything)
-        String randomDigits = generateRandomDigits(12);  // 12 random digits
+        String randomDigits = generateRandomDigits(6);
         return prefix + randomDigits;  // Concatenate prefix and random digits
     }
 

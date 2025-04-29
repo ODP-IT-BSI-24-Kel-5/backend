@@ -28,6 +28,7 @@ public class TransactionResponse {
     private String associateName;
     private TransactionTypes type;
     private String notes;
+    private String description;
     private String category;
     private String method;
     private String imageReceipt;

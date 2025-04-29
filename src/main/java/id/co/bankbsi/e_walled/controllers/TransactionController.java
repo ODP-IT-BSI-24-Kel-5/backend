@@ -129,14 +129,4 @@ public class TransactionController {
         Response res = transactionService.createTransactionTopUp(userData, req);
         return ResponseEntity.status(res.getCode()).body(res);
     }
-
-    @GetMapping(path = "/qr", produces = MediaType.IMAGE_PNG_VALUE)
-    public byte[] generateQRCode(@AuthenticationPrincipal Users userData) throws WriterException, IOException {
-        QRCodeWriter writer = new QRCodeWriter();
-        BitMatrix bitMatrix = writer.encode("byondwallet://open/transactions/transfer?" + userData.getId().toString(), BarcodeFormat.QR_CODE, 400, 400);
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
-        return outputStream.toByteArray();
-    }
 }

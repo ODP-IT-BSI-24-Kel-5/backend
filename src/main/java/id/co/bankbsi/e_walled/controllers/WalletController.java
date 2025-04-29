@@ -1,5 +1,6 @@
 package id.co.bankbsi.e_walled.controllers;
 
+import com.google.zxing.WriterException;
 import id.co.bankbsi.e_walled.dto.request.CreateWalletRequest;
 import id.co.bankbsi.e_walled.dto.request.UpdateWalletRequest;
 import id.co.bankbsi.e_walled.dto.response.Response;
@@ -8,9 +9,12 @@ import id.co.bankbsi.e_walled.services.WalletService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 
 @RestController
@@ -30,13 +34,13 @@ public class WalletController {
     @PostMapping("")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Response> createWallet(@AuthenticationPrincipal Users user, @RequestBody @Valid CreateWalletRequest createWalletRequest) {
-        Response res = walletService.createWallet(user,createWalletRequest);
+        Response res = walletService.createWallet(user, createWalletRequest);
         return ResponseEntity.status(res.getCode()).body(res);
     }
 
     @PutMapping("/{wallet}")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<Response> updateWallet(@AuthenticationPrincipal Users user, @PathVariable String wallet ,@RequestBody @Valid UpdateWalletRequest updateWalletRequest) {
+    public ResponseEntity<Response> updateWallet(@AuthenticationPrincipal Users user, @PathVariable String wallet, @RequestBody @Valid UpdateWalletRequest updateWalletRequest) {
         Response res = walletService.updateWallet(user, wallet, updateWalletRequest);
         return ResponseEntity.status(res.getCode()).body(res);
     }
@@ -67,5 +71,12 @@ public class WalletController {
     public ResponseEntity<Response> getSpecificWalletDetail(@AuthenticationPrincipal Users user, @PathVariable(value = "number") String number) {
         Response res = walletService.getSpecificWallet(user, number);
         return ResponseEntity.status(res.getCode()).body(res);
+    }
+
+
+    @GetMapping(path = "/{wallet}/qr", produces = MediaType.IMAGE_PNG_VALUE)
+    public byte[] generateQRCode(@AuthenticationPrincipal Users userData, @PathVariable String wallet) throws WriterException, IOException {
+
+         return walletService.generateQr(userData, wallet);
     }
 }

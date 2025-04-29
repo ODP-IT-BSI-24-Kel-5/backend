@@ -45,8 +45,6 @@ public class AuthService {
                     return Response.failedRequest("Email already registered");
                 } else if (user.getMobilePhone().equals(dto.getMobilePhone())) {
                     return Response.failedRequest("Mobile phone already registered");
-                } else if (user.getFullName().equals(dto.getFullName())) {
-                    return Response.failedRequest("Full name already registered");
                 }
             }
             // Map DTO to entity

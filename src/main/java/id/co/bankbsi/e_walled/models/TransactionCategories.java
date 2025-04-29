@@ -22,6 +22,7 @@ public class TransactionCategories extends Timestamp {
     private Long id;
 
     private String name; // For example, "Eat" or "Vacation"
+    private String icon; // For example, "Eat" or "Vacation"
 
     @JsonCreator
     public TransactionCategories(@JsonProperty("id") Long id) {

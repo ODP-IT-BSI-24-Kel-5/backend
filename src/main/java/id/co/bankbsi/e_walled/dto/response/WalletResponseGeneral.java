@@ -8,6 +8,8 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.springframework.http.HttpStatus;
 
+import java.util.List;
+
 @Setter
 @Getter
 @Accessors(chain = true)
@@ -31,6 +33,25 @@ public class WalletResponseGeneral extends Response {
     @Accessors(chain = true)
     public static class WalletsGeneral {
         private String name;
+        private String userName;
         private String number;
+    }
+
+    @Setter
+    @Getter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Accessors(chain = true)
+    public static class WalletsResponseGeneral extends Response {
+        private List<WalletsGeneral> wallets;
+
+        public WalletsResponseGeneral(String status, String message, HttpStatus statusCode, List<WalletsGeneral> wallets) {
+            super(status, message, statusCode);
+            this.wallets = wallets;
+        }
+
+        public static WalletsResponseGeneral success(List<WalletsGeneral> wallets) {
+            return new WalletsResponseGeneral("success", "Wallet retrieved successfully!", HttpStatus.OK, wallets);
+        }
     }
 }

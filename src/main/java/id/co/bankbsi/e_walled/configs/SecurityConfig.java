@@ -61,7 +61,8 @@ public class SecurityConfig {
                     var corsConfig = new CorsConfiguration();
                     corsConfig.setAllowedOriginPatterns(List.of(
                             "http://localhost:*",
-                            "https://kelompok3.serverku.org"
+                            "https://kelompok3.serverku.org",
+                            "https://walled-fe.vercel.app/"
                     ));
                     corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     corsConfig.setAllowedHeaders(List.of("Authorization", "Content-Type"));

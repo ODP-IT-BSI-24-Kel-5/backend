@@ -30,7 +30,7 @@ public class UserController {
         return ResponseEntity.status(res.getCode()).body(res);
     }
 
-    @PostMapping("/update")
+    @PutMapping("")
     public ResponseEntity<Response> updateProfile(@AuthenticationPrincipal Users user,
                                                   @RequestParam(value = "name", required = false) String name,
                                                   @RequestParam(value = "email", required = false) String email,

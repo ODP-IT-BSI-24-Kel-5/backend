@@ -68,6 +68,7 @@ public class CustomTransactionRepository {
                 receiverUser.get("fullName").alias("associateName"),
                 transaction.get("type"),
                 transaction.get("notes"),
+                transaction.get("description"),
                 category.get("name").alias("category"),
                 method.get("name").alias("method"),
                 transaction.get("receiptImage")
@@ -153,16 +154,12 @@ public class CustomTransactionRepository {
                                             TransactionFilterRequest filterRequest) {
         List<Predicate> predicates = new ArrayList<>();
 
-        predicates.add(cb.or(
-                cb.equal(sender.get("user"), user),
-                cb.equal(receiver.get("user"), user)
-        ));
+        predicates.add(cb.equal(sender.get("user"), user));
 
-        if (filterRequest.getWalletNumber() != null) {
-            predicates.add(cb.or(
-                    cb.equal(sender.get("number"), filterRequest.getWalletNumber()),
-                    cb.equal(receiver.get("number"), filterRequest.getWalletNumber())
-            ));
+        if (filterRequest.getWallet() != null) {
+            predicates.add(
+                    cb.equal(sender.get("number"), filterRequest.getWallet())
+            );
         }
 
         if (filterRequest.getCategoryName() != null && !filterRequest.getCategoryName().isBlank()) {
@@ -189,6 +186,7 @@ public class CustomTransactionRepository {
             String likeSearch = "%" + filterRequest.getSearch().toLowerCase() + "%";
             predicates.add(cb.or(
                     cb.like(cb.lower(root.get("notes")), likeSearch),
+                    cb.like(cb.lower(root.get("type")), likeSearch),
                     cb.like(cb.lower(root.get("transactionNumber")), likeSearch),
                     cb.like(cb.lower(senderUser.get("fullName")), likeSearch),
                     cb.like(cb.lower(sender.get("number")), likeSearch),

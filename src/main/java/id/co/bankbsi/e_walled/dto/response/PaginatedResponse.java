@@ -39,6 +39,8 @@ public class PaginatedResponse<T> {
             this.pageSize = page.getSize();
             this.totalItems = page.getTotalElements();
             this.totalPages = page.getTotalPages();
+            this.hasNext = page.hasNext();
+            this.hasPrevious = page.hasPrevious();
             this.isFirst = page.isFirst();
             this.isLast = page.isLast();
         }

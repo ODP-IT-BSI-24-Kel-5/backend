@@ -15,6 +15,7 @@ import java.util.UUID;
 @Repository
 public interface WalletRepository extends JpaRepository<Wallets, Long> {
     List<Wallets> findByUserId(UUID userId);
+    List<Wallets> findByUserIdOrderByIsMainDescCreatedAtAsc(UUID userId);
     Wallets findFirstByUserIdAndIsMain(UUID userId, boolean isMain);
     Optional<Wallets> findById(UUID userId);
     Wallets findFirstByUserIdAndNumber(UUID userId, String number);

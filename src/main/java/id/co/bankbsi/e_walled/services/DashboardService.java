@@ -1,6 +1,5 @@
 package id.co.bankbsi.e_walled.services;
 
-import id.co.bankbsi.e_walled.dto.request.TransactionStatsRequest;
 import id.co.bankbsi.e_walled.dto.response.Response;
 import id.co.bankbsi.e_walled.dto.response.TransactionStatsResponse;
 import id.co.bankbsi.e_walled.models.PeriodType;
@@ -57,7 +56,7 @@ public class DashboardService {
         );
 
         mappedTrans.add(extractIncomeExpense("Total", total));
-        List<Wallets> wallets = walletRepository.findByUserId(user.getId());
+        List<Wallets> wallets = walletRepository.findByUserIdOrderByIsMainDescCreatedAtAsc(user.getId());
 
         for (Wallets wallet : wallets) {
             List<Object[]> results = transactionStatRepository.getIncomeExpenseStatistic(
@@ -88,11 +87,13 @@ public class DashboardService {
         String periodString = period.toTruncFormat();
         List<List<Object[]>> rawTransactions = new ArrayList<>();
         List<String> transactionLabel = new ArrayList<>();
+        List<String> transactionName = new ArrayList<>();
         Map<String, Long> walletInitialBalances = new HashMap<>();
         Long totalBalance = 0L;
         for (Wallets wallet : wallets) {
             rawTransactions.add(transactionStatRepository.getWalletTransactionGrowth(wallet.getId(), user.getId(), periodString, start, end));
             transactionLabel.add(wallet.getNumber());
+            transactionName.add(wallet.getName());
             Long tempBalance = customTransactionRepository.sumAmountsFromStartDate(wallet, start);
             totalBalance += (wallet.getBalance() + tempBalance);
 
@@ -100,11 +101,12 @@ public class DashboardService {
         }
         rawTransactions.add(transactionStatRepository.getTransactionGrowth(user.getId(), periodString, start, end));
         transactionLabel.add("total");
+        transactionName.add("total");
         Long tempBalance = customTransactionRepository.sumAmountsFromStartDate(null, start);
         tempBalance = tempBalance < 0? 0 : tempBalance;
         walletInitialBalances.put("total", (totalBalance + tempBalance));
 
-        return getAggregated(rawTransactions, transactionLabel, walletInitialBalances, periodString, start, end);
+        return getAggregated(rawTransactions, transactionLabel, walletInitialBalances, periodString, transactionName, start, end);
     }
 
     public List<Map<String, Object>> getTopExpenseByCategory(List<Object[]> rawData, int topN) {
@@ -185,7 +187,7 @@ public class DashboardService {
         return new TransactionStatsResponse.ChartData(wallet, Arrays.asList(income, expense, internal), "", "", 0F, true);
     }
 
-    private TransactionStatsResponse getAggregated(List<List<Object[]>> allRawTransactions, List<String> transactionLabel, Map<String, Long> walletInitialBalances, String periodString, LocalDateTime minDate, LocalDateTime maxDate) {
+    private TransactionStatsResponse getAggregated(List<List<Object[]>> allRawTransactions, List<String> transactionLabel, Map<String, Long> walletInitialBalances, String periodString, List<String> transactionName, LocalDateTime minDate, LocalDateTime maxDate) {
         Map<String, TreeMap<String, Long>> walletPeriodBalances = new LinkedHashMap<>();
         TreeSet<String> allPeriods = new TreeSet<>();
 
@@ -224,10 +226,10 @@ public class DashboardService {
 
         for (int i = 0; i < allRawTransactions.size(); i++) {
             List<Object[]> rawTransactions = allRawTransactions.get(i);
-            String walletName = transactionLabel.get(i);
+            String labelName = transactionLabel.get(i);
 
             TreeMap<String, Long> periodSums = new TreeMap<>();
-            Long initialBalance = walletInitialBalances.getOrDefault(walletName, 0L);
+            Long initialBalance = walletInitialBalances.getOrDefault(labelName, 0L);
 
             if (!allPeriods.isEmpty()) {
                 String firstPeriod = allPeriods.first();
@@ -255,15 +257,19 @@ public class DashboardService {
                 periodSums.put(key, acc);
             }
 
-            walletPeriodBalances.put(walletName, periodSums);
+            walletPeriodBalances.put(labelName, periodSums);
         }
 
         List<String> sortedPeriods = new ArrayList<>(allPeriods);
         List<TransactionStatsResponse.ChartData> datasets = new ArrayList<>();
 
         // Fill dataset for each wallet
-        for (String walletName : transactionLabel) {
-            TreeMap<String, Long> periodMap = walletPeriodBalances.get(walletName);
+        int count = 0;
+        for (String labelName : transactionLabel) {
+            TreeMap<String, Long> periodMap = walletPeriodBalances.get(labelName);
+
+            String walletName = transactionName.get(count);
+
             List<Long> values = new ArrayList<>();
 
             long lastVal = 0;
@@ -274,6 +280,7 @@ public class DashboardService {
                 values.add(lastVal);
             }
             datasets.add(new TransactionStatsResponse.ChartData(walletName, values, "", "", 0.5F, true));
+            count++;
         }
 
 

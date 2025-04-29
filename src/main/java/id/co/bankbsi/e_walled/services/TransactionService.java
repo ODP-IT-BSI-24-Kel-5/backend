@@ -2,6 +2,10 @@ package id.co.bankbsi.e_walled.services;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import id.co.bankbsi.e_walled.dto.request.CreateTransactionRequest;
 import id.co.bankbsi.e_walled.dto.request.SortRequest;
 import id.co.bankbsi.e_walled.dto.request.TransactionFilterRequest;
@@ -28,6 +32,7 @@ import org.springframework.stereotype.Service;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
@@ -204,8 +209,6 @@ public class TransactionService {
             throw e; // Let handled exceptions bubble up
         }
     }
-
-
 //    @Transactional
 //    public List<TransactionDTO> getTransactionsForStatement(UUID walletId) {
 //        // Fetch transactions for a particular wallet (associateWallet or wallet)

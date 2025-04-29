@@ -25,7 +25,7 @@ public class RegisterRequest {
 
     @NotBlank(message = "Phone number is required")
     @Pattern(
-            regexp = "^(\\+62|62|0)8[1-9][0-9]{9,12}$",
+            regexp = "^(\\+62|62|0)8[1-9][0-9]{7,12}$",
             message = "Phone number must be a valid number"
     )
     private String mobilePhone;

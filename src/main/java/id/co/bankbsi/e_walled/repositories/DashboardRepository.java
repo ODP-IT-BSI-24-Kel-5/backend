@@ -34,8 +34,8 @@ public class DashboardRepository {
         Join<Wallets, Users> senderUserJoin = senderJoin.join("user", JoinType.LEFT);
 
         Expression<String> direction = cb.<String>selectCase()
-                .when(cb.and(cb.equal(senderUserJoin, user), cb.and(cb.isFalse(root.get("isDebit")), cb.isFalse(root.get("isInternal")))), "EXPENSE")
-                .when(cb.and(cb.equal(senderUserJoin, user), cb.and(cb.isTrue(root.get("isDebit")), cb.isFalse(root.get("isInternal")))), "INCOME")
+                .when(cb.and(cb.equal(senderUserJoin, user), cb.and(cb.isFalse(root.get("isDebit")), cb.isFalse(root.get("isInternal")))), "INCOME")
+                .when(cb.and(cb.equal(senderUserJoin, user), cb.and(cb.isTrue(root.get("isDebit")), cb.isFalse(root.get("isInternal")))), "EXPENSE")
                 .otherwise(cb.literal("INTERNAL"));
 
 
