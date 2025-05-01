@@ -70,6 +70,7 @@ public class CustomTransactionRepository {
                 transaction.get("notes"),
                 transaction.get("description"),
                 category.get("name").alias("category"),
+                category.get("icon").alias("categoryIcon"),
                 method.get("name").alias("method"),
                 transaction.get("receiptImage")
         ));

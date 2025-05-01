@@ -30,6 +30,7 @@ public class TransactionResponse {
     private String notes;
     private String description;
     private String category;
+    private String categoryIcon;
     private String method;
     private String imageReceipt;
 }

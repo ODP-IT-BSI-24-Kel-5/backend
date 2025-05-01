@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.awt.print.Pageable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -43,6 +44,18 @@ public interface TransactionRepository extends CrudRepository<Transactions, Long
             @Param("wallet") Wallets wallet,
             @Param("month") Integer month,
             @Param("year") Integer year
+    );
+
+
+    @Query("""
+                SELECT tc.name, tc.icon, ABS(SUM(CASE WHEN t.isDebit AND NOT t.isInternal THEN t.amount * -1 ELSE 0 END)) total_amount FROM Transactions t
+                JOIN TransactionCategories tc ON tc.id = t.category.id
+                WHERE (t.wallet.user = :user)
+                GROUP BY tc.name, tc.icon
+                ORDER BY total_amount DESC
+            """)
+    List<Object[]> sumBalanceCategory(
+            @Param("user") Users user
     );
 
 

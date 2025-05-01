@@ -44,6 +44,7 @@ public class TransactionStatsResponse extends Response {
         private Float tension = 0.5F;
         private boolean fill = true;
     }
+
     @Setter
     @Getter
     @Accessors(chain = true)
@@ -61,4 +62,31 @@ public class TransactionStatsResponse extends Response {
             return new TotalBalance("success", "User retrieved successfully!", HttpStatus.OK, totalBalance);
         }
     }
+
+    @Setter
+    @Getter
+    @Accessors(chain = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CategoryBalance extends Response {
+        private Map<String, CategoryBalanceData> data;
+
+        public CategoryBalance(String status, String message, HttpStatus statusCode, Map<String, CategoryBalanceData> data) {
+            super(status, message, statusCode);
+            this.data = data;
+        }
+
+        public static CategoryBalance success(Map<String, CategoryBalanceData> data) {
+            return new CategoryBalance("success", "User retrieved successfully!", HttpStatus.OK, data);
+        }
+    }
+
+    @AllArgsConstructor
+    @Setter
+    @Getter
+    public static class CategoryBalanceData {
+        private String icon;
+        private Long amount;
+    }
+
 }

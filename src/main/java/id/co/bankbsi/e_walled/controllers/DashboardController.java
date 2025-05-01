@@ -51,4 +51,12 @@ public class DashboardController {
         var data = transactionStatService.getTotalBalance(user);
         return ResponseEntity.ok(data);
     }
+
+    @GetMapping("/category")
+    public ResponseEntity<Response> categoryTransaction(
+            @AuthenticationPrincipal Users user
+    ) { // You can inject this however you handle auth
+        var data = transactionStatService.getCategoryTransaction(user);
+        return ResponseEntity.ok(data);
+    }
 }

@@ -36,7 +36,7 @@ public class DashboardService {
     public Response getPieChart(Users user, String range) {
         LocalDateTime nowDate = LocalDateTime.now().with(LocalTime.MIN);
 
-        range = range == null? "" : range;
+        range = range == null ? "" : range;
         LocalDateTime startDate = switch (range) {
             case "weekly" -> nowDate.minusWeeks(1);
             case "monthly" -> nowDate.minusMonths(1);
@@ -103,7 +103,7 @@ public class DashboardService {
         transactionLabel.add("total");
         transactionName.add("total");
         Long tempBalance = customTransactionRepository.sumAmountsFromStartDate(null, start);
-        tempBalance = tempBalance < 0? 0 : tempBalance;
+        tempBalance = tempBalance < 0 ? 0 : tempBalance;
         walletInitialBalances.put("total", (totalBalance + tempBalance));
 
         return getAggregated(rawTransactions, transactionLabel, walletInitialBalances, periodString, transactionName, start, end);
@@ -155,6 +155,23 @@ public class DashboardService {
         Long value = walletRepository.sumBalance(user.getId());
 
         return TransactionStatsResponse.TotalBalance.success(value);
+    }
+
+    public TransactionStatsResponse.CategoryBalance getCategoryTransaction(
+            Users user
+    ) {
+        List<Object[]> data = transactionRepository.sumBalanceCategory(user);
+        Map<String, TransactionStatsResponse.CategoryBalanceData> value = new LinkedHashMap<>();
+
+        for (Object[] row : data) {
+            String category = (String) row[0];
+            String icon = (String) row[1];
+            Long total = (Long) row[2];
+
+            value.put(category, new TransactionStatsResponse.CategoryBalanceData(icon, total));
+        }
+
+        return TransactionStatsResponse.CategoryBalance.success(value);
     }
 
 

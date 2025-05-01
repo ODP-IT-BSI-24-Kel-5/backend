@@ -15,15 +15,22 @@ import java.util.UUID;
 @Repository
 public interface WalletRepository extends JpaRepository<Wallets, Long> {
     List<Wallets> findByUserId(UUID userId);
+
     List<Wallets> findByUserIdOrderByIsMainDescCreatedAtAsc(UUID userId);
+
     Wallets findFirstByUserIdAndIsMain(UUID userId, boolean isMain);
+
     Optional<Wallets> findById(UUID userId);
+
     Wallets findFirstByUserIdAndNumber(UUID userId, String number);
+
     Optional<Wallets> findByUserIdAndNumber(UUID userId, String number);
+
     boolean existsByNumber(String number);
+
     Wallets findByNumber(String number);
 
-    Wallets findByNumberAndUserId(String number,UUID userId);
+    Wallets findByNumberAndUserId(String number, UUID userId);
 
 
     @Query("""
@@ -46,7 +53,6 @@ public interface WalletRepository extends JpaRepository<Wallets, Long> {
     @Query("SELECT SUM(balance) FROM Wallets w WHERE w.user.id = :userId")
     Long sumBalance(UUID userId);
 
-
     @Modifying
     @Transactional
     @Query("UPDATE Wallets w SET w.balance = :balance WHERE w.id = :walletId")
@@ -62,5 +68,6 @@ public interface WalletRepository extends JpaRepository<Wallets, Long> {
     @Transactional
     @Query("UPDATE Wallets w SET w.isMain = false WHERE w.user = :user")
     void removeMain(Users user);
+
     Long findBalanceByNumber(String number);
 }
